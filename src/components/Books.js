@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import axios from 'axios';
 
 function Books() {
   const [books, setBooks] = useState([]);
@@ -12,50 +13,38 @@ function Books() {
   });
 
   useEffect(() => {
-    fetch('http://localhost:9090/books')
-      .then(response => response.json())
-      .then(data => setBooks(data));
+    axios.get('http://localhost:9090/books')
+      .then(response => setBooks(response.data));
   }, []);
 
   const deleteBook = (id) => {
-    const confirmed = window.confirm('Είσαι σίγουρος ότι θέλεις να διαγράψεις αυτό το βιβλίο;');
+    const confirmed = window.confirm('Are tou sure that you want to delete this book?');
     if (confirmed) {
-      fetch(`http://localhost:9090/books/${id}`, { method: 'DELETE' })
+      axios.delete(`http://localhost:9090/books/${id}`)
         .then(() => setBooks(books.filter(book => book.id !== id)));
     }
   };
 
   const saveBook = () => {
-    fetch(`http://localhost:9090/books/${editBook.id}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        ...editBook,
-        publication_year: parseInt(editBook.publication_year)
-      })
+    axios.put(`http://localhost:9090/books/${editBook.id}`, {
+      ...editBook,
+      publication_year: parseInt(editBook.publication_year)
     })
-    .then(response => response.json())
-    .then(updated => {
-      setBooks(books.map(book => book.id === updated.id ? updated : book));
+    .then(response => {
+      setBooks(books.map(book => book.id === response.data.id ? response.data : book));
       setEditBook(null);
     });
   };
 
   const addBook = () => {
-    fetch('http://localhost:9090/books', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        ...newBook,
-        publication_year: parseInt(newBook.publication_year)
-      })
+    axios.post('http://localhost:9090/books', {
+      ...newBook,
+      publication_year: parseInt(newBook.publication_year)
     })
-    .then(response => response.json())
     .then(() => {
-      fetch('http://localhost:9090/books')
-        .then(response => response.json())
-        .then(data => {
-          setBooks(data);
+      axios.get('http://localhost:9090/books')
+        .then(response => {
+          setBooks(response.data);
           setShowAddForm(false);
           setNewBook({ title: '', isbn: '', category: '', publication_year: '' });
         });
@@ -147,15 +136,31 @@ function Books() {
       ) : (
         <div>
           <button onClick={() => setShowAddForm(true)}>+ Add Book</button>
-          <ul>
-            {books.map(book => (
-              <li key={book.id}>
-                {book.title} — {book.category} ({book.publication_year})
-                <button onClick={() => setEditBook(book)}>Edit</button>
-                <button onClick={() => deleteBook(book.id)}>Delete</button>
-              </li>
-            ))}
-          </ul>
+          <table>
+            <thead>
+              <tr>
+                <th>Title</th>
+                <th>ISBN</th>
+                <th>Category</th>
+                <th>Year</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {books.map(book => (
+                <tr key={book.id}>
+                  <td>{book.title}</td>
+                  <td>{book.isbn}</td>
+                  <td>{book.category}</td>
+                  <td>{book.publication_year}</td>
+                  <td>
+                    <button onClick={() => setEditBook(book)}>Edit</button>
+                    <button onClick={() => deleteBook(book.id)}>Delete</button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       )}
     </div>

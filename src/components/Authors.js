@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import axios from 'axios';
 
 function Authors() {
   const [authors, setAuthors] = useState([]);
@@ -11,48 +12,36 @@ function Authors() {
   });
 
   useEffect(() => {
-    fetch('http://localhost:9090/authors')
-      .then(response => response.json())
-      .then(data => setAuthors(data));
+    axios.get('http://localhost:9090/authors')
+      .then(response => setAuthors(response.data));
   }, []);
 
   const deleteAuthor = (id) => {
-    const confirmed = window.confirm('Είσαι σίγουρος ότι θέλεις να διαγράψεις αυτόν τον συγγραφέα;');
+    const confirmed = window.confirm('Are tou sure that you want to delete this author?');
     if (confirmed) {
-      fetch(`http://localhost:9090/authors/${id}`, { method: 'DELETE' })
+      axios.delete(`http://localhost:9090/authors/${id}`)
         .then(() => setAuthors(authors.filter(author => author.id !== id)));
     }
   };
 
   const saveAuthor = () => {
-    fetch(`http://localhost:9090/authors/${editAuthor.id}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(editAuthor)
-    })
-    .then(response => response.json())
-    .then(updated => {
-      setAuthors(authors.map(author => author.id === updated.id ? updated : author));
-      setEditAuthor(null);
-    });
+    axios.put(`http://localhost:9090/authors/${editAuthor.id}`, editAuthor)
+      .then(response => {
+        setAuthors(authors.map(author => author.id === response.data.id ? response.data : author));
+        setEditAuthor(null);
+      });
   };
 
   const addAuthor = () => {
-    fetch('http://localhost:9090/authors', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(newAuthor)
-    })
-    .then(response => response.json())
-    .then(() => {
-      fetch('http://localhost:9090/authors')
-        .then(response => response.json())
-        .then(data => {
-          setAuthors(data);
-          setShowAddForm(false);
-          setNewAuthor({ name: '', nationality: '', birth_date: '' });
-        });
-    });
+    axios.post('http://localhost:9090/authors', newAuthor)
+      .then(() => {
+        axios.get('http://localhost:9090/authors')
+          .then(response => {
+            setAuthors(response.data);
+            setShowAddForm(false);
+            setNewAuthor({ name: '', nationality: '', birth_date: '' });
+          });
+      });
   };
 
   return (
@@ -126,15 +115,29 @@ function Authors() {
       ) : (
         <div>
           <button onClick={() => setShowAddForm(true)}>+ Add Author</button>
-          <ul>
-            {authors.map(author => (
-              <li key={author.id}>
-                {author.name} — {author.nationality} ({author.birth_date})
-                <button onClick={() => setEditAuthor(author)}>Edit</button>
-                <button onClick={() => deleteAuthor(author.id)}>Delete</button>
-              </li>
-            ))}
-          </ul>
+          <table>
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Nationality</th>
+                <th>Birth Date</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {authors.map(author => (
+                <tr key={author.id}>
+                  <td>{author.name}</td>
+                  <td>{author.nationality}</td>
+                  <td>{author.birth_date}</td>
+                  <td>
+                    <button onClick={() => setEditAuthor(author)}>Edit</button>
+                    <button onClick={() => deleteAuthor(author.id)}>Delete</button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       )}
     </div>
